@@ -27,33 +27,33 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
-EXPORT bool service_running(std::wstring token)
-{
-	SC_HANDLE scm = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, SC_MANAGER_CONNECT);
-	if (scm == NULL)
-		return false;
-	LPCWSTR   lpServiceName = (LPCWSTR)token.data();
-
-	SC_HANDLE hService = OpenService(scm, lpServiceName, GENERIC_READ);
-	if (hService == NULL)
-	{
-		CloseServiceHandle(scm);
-		return false;
-	}
-
-	SERVICE_STATUS status;
-	LPSERVICE_STATUS pstatus = &status;
-	if (QueryServiceStatus(hService, pstatus) == 0)
-	{
-		CloseServiceHandle(hService);
-		CloseServiceHandle(scm);
-		return false;
-	}
-
-	CloseServiceHandle(hService);
-	CloseServiceHandle(scm);
-	return (status.dwCurrentState == SERVICE_RUNNING) ? (true) : (false);
-}
+//EXPORT bool service_running(std::wstring token)
+//{
+//	SC_HANDLE scm = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, SC_MANAGER_CONNECT);
+//	if (scm == NULL)
+//		return false;
+//	LPCWSTR   lpServiceName = (LPCWSTR)token.data();
+//
+//	SC_HANDLE hService = OpenService(scm, lpServiceName, GENERIC_READ);
+//	if (hService == NULL)
+//	{
+//		CloseServiceHandle(scm);
+//		return false;
+//	}
+//
+//	SERVICE_STATUS status;
+//	LPSERVICE_STATUS pstatus = &status;
+//	if (QueryServiceStatus(hService, pstatus) == 0)
+//	{
+//		CloseServiceHandle(hService);
+//		CloseServiceHandle(scm);
+//		return false;
+//	}
+//
+//	CloseServiceHandle(hService);
+//	CloseServiceHandle(scm);
+//	return (status.dwCurrentState == SERVICE_RUNNING) ? (true) : (false);
+//}
 
 std::wstring s2ws(const std::string& str)
 {
@@ -63,22 +63,22 @@ std::wstring s2ws(const std::string& str)
 	return wstrTo;
 }
 
-EXPORT bool FooCaller(const char* p)
-{
-	std::wstring str = s2ws(p);
-	return service_running(str);
-}
+//EXPORT bool FooCaller(const char* p)
+//{
+//	std::wstring str = s2ws(p);
+//	return service_running(str);
+//}
 
 EXPORT bool CallStartService(const char* name, ServiceEntry** entry)//ItemListHandle* hItems, 
 {
-	ServiceEntry* temp = new ServiceEntry();
 	bool srvStarted = false;
 	bool statusReceived = false;
 	std::wstring wname = s2ws(name);
+	LPCWSTR   lpServiceName = (LPCWSTR)wname.data();
+
 	SC_HANDLE scm = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, GENERIC_ALL);
 	if (scm == NULL)
 		return false;
-	LPCWSTR   lpServiceName = (LPCWSTR)wname.data();
 
 	SC_HANDLE hService = OpenService(scm, lpServiceName, GENERIC_ALL);
 	if (hService == NULL)
@@ -87,7 +87,7 @@ EXPORT bool CallStartService(const char* name, ServiceEntry** entry)//ItemListHa
 		return false;
 	}
 
-	srvStarted = true;//ServiceControl::Start(hService);
+	srvStarted = ServiceControl::Start(hService);
 	if (srvStarted)
 	{
 		//auto bytesNeeded = DWORD{ 0 };
@@ -106,6 +106,8 @@ EXPORT bool CallStartService(const char* name, ServiceEntry** entry)//ItemListHa
 		//	entry.StatusString = ServiceControl::WStr2BSTR(ServiceControl::ServiceStatusToString(
 		//		static_cast<ServiceStatus>(sspInfo.dwCurrentState)));
 		//}
+
+		ServiceEntry* temp = new ServiceEntry();
 		statusReceived = ServiceControl::GetStatus(hService, temp);
 		if (statusReceived)
 		{
@@ -116,7 +118,67 @@ EXPORT bool CallStartService(const char* name, ServiceEntry** entry)//ItemListHa
 
 	CloseServiceHandle(hService);
 	CloseServiceHandle(scm);
-	return srvStarted;//&& statusReceived;
+	return srvStarted && statusReceived;
+}
+
+EXPORT bool CallStopService(const char* name, ServiceEntry** entry)
+{
+	bool srvStopped = false;
+	bool statusReceived = false;
+	std::wstring wname = s2ws(name);
+	LPCWSTR   lpServiceName = (LPCWSTR)wname.data();
+
+	SC_HANDLE scm = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, GENERIC_ALL);
+	if (scm == NULL)
+		return false;
+
+	SC_HANDLE hService = OpenService(scm, lpServiceName, GENERIC_ALL);
+	if (hService == NULL)
+	{
+		CloseServiceHandle(scm);
+		return false;
+	}
+
+	srvStopped = ServiceControl::Stop(hService, scm);
+	if (srvStopped)
+	{
+		ServiceEntry* temp = new ServiceEntry();
+		statusReceived = ServiceControl::GetStatus(hService, temp);
+		if (statusReceived)
+		{
+			*entry = temp;
+		}
+	}
+}
+
+EXPORT bool CallRestartService(const char* name, ServiceEntry** entry) 
+{
+	bool srvRestarted = false;
+	bool statusReceived = false;
+	std::wstring wname = s2ws(name);
+	LPCWSTR   lpServiceName = (LPCWSTR)wname.data();
+
+	SC_HANDLE scm = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, GENERIC_ALL);
+	if (scm == NULL)
+		return false;
+
+	SC_HANDLE hService = OpenService(scm, lpServiceName, GENERIC_ALL);
+	if (hService == NULL)
+	{
+		CloseServiceHandle(scm);
+		return false;
+	}
+
+	srvRestarted = ServiceControl::Restart(hService, scm);
+	if (srvRestarted)
+	{
+		ServiceEntry* temp = new ServiceEntry();
+		statusReceived = ServiceControl::GetStatus(hService, temp);
+		if (statusReceived)
+		{
+			*entry = temp;
+		}
+	}
 }
 
 EXPORT bool GenerateItems(ItemListHandle* hItems, ServiceEntry** itemsFound, int* itemCount)

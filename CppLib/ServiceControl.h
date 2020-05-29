@@ -100,15 +100,22 @@ public:
 
             if (result != 0)
             {
-                entry->PID = WStr2BSTR(std::to_wstring(ssp.dwProcessId));
+                DWORD temp = ssp.dwProcessId;
+                if (temp > 0)
+                    entry->PID = WStr2BSTR(std::to_wstring(temp));
+                //else
+                //{
+                //    entry->PID = WStr2BSTR(L"");
+                //}
+                //entry->PID = WStr2BSTR(std::to_wstring(ssp.dwProcessId));
                 entry->StatusString = WStr2BSTR(ServiceStatusToString(
                     static_cast<ServiceStatus>(ssp.dwCurrentState)));
 
                 //------
-                entry->Description = WStr2BSTR(L"qwe");
-                entry->Group = WStr2BSTR(L"qwe");
-                entry->Name = WStr2BSTR(L"qwe");
-                entry->Path = WStr2BSTR(L"qwe");
+                //entry->Description = WStr2BSTR(L"");
+                //entry->Group = WStr2BSTR(L"");
+                //entry->Name = WStr2BSTR(L"");
+                //entry->Path = WStr2BSTR(L"");
                 //------
             }
         }
@@ -123,6 +130,13 @@ public:
         if (srvHandle)
         {
             success = ::StartService(srvHandle, 0, nullptr);
+
+            if (success)
+            {
+                auto ssp = SERVICE_STATUS_PROCESS{ 0 };
+                success = WaitForStatus(srvHandle, ssp, ServiceStatus::Running);
+            }
+
         }
 
         return success;
@@ -291,6 +305,9 @@ public:
             {
                 auto ssp = SERVICE_STATUS_PROCESS{ 0 };
                 success = ChangeServiceStatus(srvHandle, SERVICE_CONTROL_STOP, ssp);
+
+                if (success)
+                    success = WaitForStatus(srvHandle, ssp, ServiceStatus::Stopped);
             }
         }
 
@@ -394,29 +411,31 @@ public:
                                     }
                                 }
 
-                                bytesNeeded = DWORD{ 0 };
-                                auto sspInfo = SERVICE_STATUS_PROCESS{ 0 };
+                                auto result = GetStatus(srvHandle, &ssp);
 
-                                auto result = ::QueryServiceStatusEx(
-                                    srvHandle,
-                                    SC_STATUS_PROCESS_INFO,
-                                    reinterpret_cast<LPBYTE>(&sspInfo),
-                                    sizeof(sspInfo),
-                                    &bytesNeeded);
+                                //bytesNeeded = DWORD{ 0 };
+                                //auto sspInfo = SERVICE_STATUS_PROCESS{ 0 };
 
-                                if (result != 0)
-                                {
-                                    DWORD temp = sspInfo.dwProcessId;
-                                    if (temp > 0)
-                                    {
-                                        ssp.PID = _bstr_t(std::to_wstring(temp).c_str()).copy();
-                                    }
-                                    else
-                                    {
-                                        ssp.PID = BSTR();
-                                    }
-                                    //ssp.PID = sspInfo.dwProcessId;
-                                }
+                                //auto result = ::QueryServiceStatusEx(
+                                //    srvHandle,
+                                //    SC_STATUS_PROCESS_INFO,
+                                //    reinterpret_cast<LPBYTE>(&sspInfo),
+                                //    sizeof(sspInfo),
+                                //    &bytesNeeded);
+
+                                //if (result != 0)
+                                //{
+                                //    DWORD temp = sspInfo.dwProcessId;
+                                //    if (temp > 0)
+                                //    {
+                                //        ssp.PID = _bstr_t(std::to_wstring(temp).c_str()).copy();
+                                //    }
+                                //    else
+                                //    {
+                                //        ssp.PID = BSTR();
+                                //    }
+                                //    //ssp.PID = sspInfo.dwProcessId;
+                                //}
 
                                 CloseServiceHandle(srvHandle);
                             }
