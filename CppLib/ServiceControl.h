@@ -21,19 +21,6 @@ using namespace std::literals::chrono_literals;
 #define ServiceString   std::string
 #endif
 
-struct TestS
-{
-    //int fst;
-    BSTR snd;
-    //_bstr_t snd;
-    //CComBSTR snd;
-
-    //~TestS()
-    //{
-    //    ::SysFreeString(snd);
-    //}
-};
-
 
 struct ServiceEntry
 {
@@ -83,7 +70,6 @@ public:
 
     static bool GetStatus(SC_HANDLE srvHandle, ServiceEntry* entry)
     {
-        //ServiceEntry entry;
         bool result = false;
 
         if (srvHandle != 0)
@@ -103,20 +89,9 @@ public:
                 DWORD temp = ssp.dwProcessId;
                 if (temp > 0)
                     entry->PID = WStr2BSTR(std::to_wstring(temp));
-                //else
-                //{
-                //    entry->PID = WStr2BSTR(L"");
-                //}
-                //entry->PID = WStr2BSTR(std::to_wstring(ssp.dwProcessId));
+
                 entry->StatusString = WStr2BSTR(ServiceStatusToString(
                     static_cast<ServiceStatus>(ssp.dwCurrentState)));
-
-                //------
-                //entry->Description = WStr2BSTR(L"");
-                //entry->Group = WStr2BSTR(L"");
-                //entry->Name = WStr2BSTR(L"");
-                //entry->Path = WStr2BSTR(L"");
-                //------
             }
         }
 
@@ -412,31 +387,6 @@ public:
                                 }
 
                                 auto result = GetStatus(srvHandle, &ssp);
-
-                                //bytesNeeded = DWORD{ 0 };
-                                //auto sspInfo = SERVICE_STATUS_PROCESS{ 0 };
-
-                                //auto result = ::QueryServiceStatusEx(
-                                //    srvHandle,
-                                //    SC_STATUS_PROCESS_INFO,
-                                //    reinterpret_cast<LPBYTE>(&sspInfo),
-                                //    sizeof(sspInfo),
-                                //    &bytesNeeded);
-
-                                //if (result != 0)
-                                //{
-                                //    DWORD temp = sspInfo.dwProcessId;
-                                //    if (temp > 0)
-                                //    {
-                                //        ssp.PID = _bstr_t(std::to_wstring(temp).c_str()).copy();
-                                //    }
-                                //    else
-                                //    {
-                                //        ssp.PID = BSTR();
-                                //    }
-                                //    //ssp.PID = sspInfo.dwProcessId;
-                                //}
-
                                 CloseServiceHandle(srvHandle);
                             }
 
